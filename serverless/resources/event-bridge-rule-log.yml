@@ -1,0 +1,105 @@
+Resources:
+  EventsFirehose:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: ${self:service}-${self:custom.stage}-firehose-events
+      DeliveryStreamType: DirectPut
+      S3DestinationConfiguration:
+        BucketARN: !GetAtt BucketEvents.Arn
+        RoleARN: !GetAtt EventsFirehoseDeliveryRole.Arn
+        Prefix: events/
+        BufferingHints:
+          IntervalInSeconds: 60
+          SizeInMBs: 128
+        CompressionFormat: UNCOMPRESSED
+  EventsFirehoseDeliveryRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ${self:service}-${self:custom.stage}-firehose-events-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - firehose.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ${self:service}-${self:custom.stage}-firehose-events-policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - 'Fn::Join':
+                      - ':'
+                      - - 'arn:aws:logs'
+                        - Ref: 'AWS::Region'
+                        - Ref: 'AWS::AccountId'
+                        - 'log-group:/aws/lambda/*:*:*'
+              - Effect: 'Allow'
+                Action:
+                  - 's3:AbortMultipartUpload'
+                  - 's3:GetBucketLocation'
+                  - 's3:GetObject'
+                  - 's3:ListBucket'
+                  - 's3:ListBucketMultipartUploads'
+                  - 's3:PutObject'
+                Resource:
+                  - arn:aws:s3:::${self:custom.bucketNameEvents}
+                  - arn:aws:s3:::${self:custom.bucketNameEvents}/*
+  EventBridgeAllEventsRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: ${self:custom.eventBusName}
+      EventPattern:
+        account:
+          - Ref: 'AWS::AccountId'
+      State: ENABLED
+      Targets:
+        - Id: Meta
+          Arn: !GetAtt EventsFirehose.Arn
+          RoleArn: !GetAtt EventBridgeFirehoseDeliveryRole.Arn
+          InputTransformer:
+            InputPathsMap: { }
+            InputTemplate: |
+              <aws.events.event>
+
+  EventBridgeFirehoseDeliveryRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ${self:service}-${self:custom.stage}-eventbridge-firehose-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ${self:service}-${self:custom.stage}-eventbridge-firehose-policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - 'Fn::Join':
+                      - ':'
+                      - - 'arn:aws:logs'
+                        - Ref: 'AWS::Region'
+                        - Ref: 'AWS::AccountId'
+                        - 'log-group:/aws/lambda/*:*:*'
+              - Effect: 'Allow'
+                Action:
+                  - 'firehose:*'
+                Resource:
+                  - !GetAtt EventsFirehose.Arn

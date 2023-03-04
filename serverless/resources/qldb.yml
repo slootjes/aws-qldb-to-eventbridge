@@ -1,0 +1,6 @@
+Resources:
+  Ledger:
+    Type: AWS::QLDB::Ledger
+    Properties:
+      Name: ${self:service}-${self:custom.stage}
+      PermissionsMode: ALLOW_ALL # not recommended, I've chosen this for the PoC only!

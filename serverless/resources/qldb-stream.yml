@@ -1,0 +1,43 @@
+Resources:
+  LedgerStream:
+    Type: AWS::QLDB::Stream
+    Properties:
+      StreamName: ${self:service}-${self:custom.stage}-stream
+      LedgerName: ${self:service}-${self:custom.stage}
+      InclusiveStartTime: 2022-01-01T00:00:00
+      RoleArn: !GetAtt LedgerStreamRole.Arn
+      KinesisConfiguration:
+        StreamArn: !GetAtt LedgerKinesisStream.Arn
+  LedgerKinesisStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: ${self:service}-${self:custom.stage}-ledger
+      RetentionPeriodHours: 24
+      ShardCount: 1
+      StreamModeDetails:
+        StreamMode: PROVISIONED
+  LedgerStreamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ${self:service}-${self:custom.stage}-ledger-stream-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - qldb.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'kinesis:PutRecord*'
+                  - 'kinesis:DescribeStream'
+                  - 'kinesis:ListShards'
+                Resource: { 'Fn::Join': ['', ['arn:', { Ref: 'AWS::Partition' }, ':kinesis:', { Ref: 'AWS::Region' }, ':', { Ref: 'AWS::AccountId' }, ':stream/', '${self:service}-${self:custom.stage}*']] }

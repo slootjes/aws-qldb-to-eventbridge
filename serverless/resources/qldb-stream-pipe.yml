@@ -1,0 +1,60 @@
+Resources:
+  LedgerStreamPipe:
+    Type: AWS::Pipes::Pipe
+    Properties:
+      Name: ${self:service}-${self:custom.stage}-ledger
+      RoleArn: !GetAtt LedgerStreamPipeRole.Arn
+      Source: !GetAtt LedgerKinesisStream.Arn
+      SourceParameters:
+        KinesisStreamParameters:
+          BatchSize: 10
+          StartingPosition: TRIM_HORIZON
+      Enrichment: !GetAtt PipeKinesisLambdaFunction.Arn
+      Target: !GetAtt EventBus.Arn
+  LedgerStreamPipeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ${self:service}-${self:custom.stage}-ledger-stream-pipe-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - pipes.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: kinesis
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'kinesis:DescribeStream'
+                  - 'kinesis:DescribeStreamSummary'
+                  - 'kinesis:GetRecords'
+                  - 'kinesis:GetShardIterator'
+                  - 'kinesis:ListStreams'
+                  - 'kinesis:ListShards'
+                Resource:
+                  - !GetAtt LedgerKinesisStream.Arn
+        - PolicyName: eventbridge
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'events:PutEvents'
+                Resource:
+                  - !GetAtt EventBus.Arn
+        - PolicyName: lambda
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'lambda:InvokeFunction'
+                Resource:
+                  - !GetAtt PipeKinesisLambdaFunction.Arn

@@ -1,0 +1,2 @@
+pipeKinesis:
+  handler: src/handler/pipe/kinesis.handle

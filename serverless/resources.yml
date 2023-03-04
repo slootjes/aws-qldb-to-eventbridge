@@ -1,0 +1,6 @@
+- ${file(serverless/resources/qldb.yml)}
+- ${file(serverless/resources/qldb-stream.yml)}
+- ${file(serverless/resources/qldb-stream-pipe.yml)}
+- ${file(serverless/resources/event-bridge.yml)}
+- ${file(serverless/resources/event-bridge-rule-log.yml)}
+- ${file(serverless/resources/s3.yml)}

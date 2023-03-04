@@ -1,0 +1,6 @@
+bucketNameEvents: ${self:service}-${self:custom.stage}-events
+eventBusName: qldb
+stage: ${opt:stage, self:provider.stage}
+prune:
+  automatic: true
+  number: 5

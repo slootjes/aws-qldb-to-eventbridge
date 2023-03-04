@@ -1,0 +1,25 @@
+service: qldbpipe
+
+frameworkVersion: '3'
+
+plugins:
+  - serverless-prune-plugin
+
+provider:
+  name: aws
+  region: 'eu-west-1'
+  stage: ${opt:stage, 'testing'}
+  runtime: nodejs16.x
+  deploymentMethod: direct
+  endpointType: REGIONAL
+  memorySize: 512
+  logRetentionInDays: 7
+  environment: ${file(serverless/environment.yml)}
+
+custom: ${file(serverless/custom.yml)}
+
+package: ${file(serverless/package.yml)}
+
+functions: ${file(./serverless/functions.yml)}
+
+resources: ${file(serverless/resources.yml)}
