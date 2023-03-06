@@ -12,7 +12,7 @@ module.exports = {
                 events.push(this.ionToJson(ion.load(Buffer.from(record.data, 'base64'))));
             }
         }
-console.log(events);
+
         return events;
     },
     deAggregateKinesisRecords: async (record) => new Promise((resolve, reject) => {
